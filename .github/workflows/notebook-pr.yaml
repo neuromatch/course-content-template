@@ -73,7 +73,11 @@ jobs:
         id: process_notebooks
         run: |
           branch=${{ github.event.pull_request.head.ref }}
-          nbs=$(nmaci select-notebooks ${{ steps.changed-files.outputs.all_changed_files }})
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            nbs=$(git ls-files 'tutorials/*.ipynb' 'tutorials/**/*.ipynb')
+          else
+            nbs=$(nmaci select-notebooks ${{ steps.changed-files.outputs.all_changed_files }})
+          fi
           if [ -z "$nbs" ]; then
             echo "No notebooks to process"
             exit 0
