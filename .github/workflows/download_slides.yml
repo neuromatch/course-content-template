@@ -27,15 +27,7 @@ jobs:
           python-version: 3.9
 
       - name: Install CI tools
-        run: |
-          BRANCH=$NMA_MAIN_BRANCH
-          wget https://github.com/NeuromatchAcademy/nmaci/archive/refs/heads/$BRANCH.tar.gz
-          tar -xzf $BRANCH.tar.gz
-          pip install -r nmaci-$BRANCH/requirements.txt
-          mv nmaci-$BRANCH/scripts/ ci/
-          rm -r nmaci-$BRANCH
-          rm -r $BRANCH.tar.gz
-          echo ci/ >> .gitignore
+        run: pip install git+https://github.com/neuromatch/nmaci@main
 
       - name: Copy tutorials from precourse repo
         run: |
@@ -54,7 +46,7 @@ jobs:
           ln -s ../tutorials book/tutorials
           ln -s ../projects book/projects
           ln -s ../prereqs book/prereqs
-          python ci/extract_links.py --noyoutube $(find -L book -name '*.ipynb') > links.json
+          nmaci extract-links --noyoutube $(find -L book -name '*.ipynb') > links.json
 
       - name: Install tools
         run: |
@@ -73,7 +65,7 @@ jobs:
           for day in book/tutorials/W?D?*; do
             slide_dir="slides_by_day/NMA CN-$(basename $day)-Slides"
             mkdir "$slide_dir"
-            python ci/extract_links.py $(find -L $day -name '*.ipynb') > links.json
+            nmaci extract-links $(find -L $day -name '*.ipynb') > links.json
             jq -r "def output: .value; .slides | to_entries | map(output) | .[]" links.json > slide_fnames.txt
             for fname in $(cat slide_fnames.txt); do
               counter=$(ls -1 "$slide_dir"|wc -l)
