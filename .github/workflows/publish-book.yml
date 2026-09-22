@@ -35,17 +35,7 @@ jobs:
           python-version: 3.9
 
       - name: Install CI tools
-        run: |
-          BRANCH=`python -c 'import os, re; m = re.search(r"nmaci:([\w-]+)", os.environ["COMMIT_MESSAGE"]); print("main" if m is None else m.group(1))'`
-          # NOTE: might enventually change this back if we integrate changes
-          wget https://github.com/$ORG/nmaci/archive/refs/heads/$BRANCH.tar.gz
-          tar -xzf $BRANCH.tar.gz
-          pip install --upgrade pip
-          pip install -r nmaci-$BRANCH/requirements.txt
-          mv nmaci-$BRANCH/scripts/ ci/
-          rm -r nmaci-$BRANCH
-          rm -r $BRANCH.tar.gz
-          echo ci/ >> .gitignore
+        run: pip install git+https://github.com/neuromatch/nmaci@main
 
       - name: Install dependencies
         run: |
@@ -77,14 +67,14 @@ jobs:
 
       - name: Build student book
         run: |
-          python ci/generate_book.py student
+          nmaci generate-book student
           # convert _toc to new format
           jupyter-book toc migrate /home/runner/work/course-content-template/course-content-template/book/_toc.yml -o /home/runner/work/course-content-template/course-content-template/book/_toc.yml
           ln -s ../tutorials book/tutorials
           ln -s ../projects book/projects
           ln -s ../prereqs book/prereqs
           jupyter-book build book
-          python ci/parse_html_for_errors.py student
+          nmaci parse-html student
 
       - name: Commit book
         run: |
