@@ -38,16 +38,7 @@ jobs:
 
       - name: Install CI tools
         if: "!contains(env.COMMIT_MESSAGE, 'skip ci')"
-        run: |
-          BRANCH=`python -c 'import os, re; m = re.search(r"nmaci:([\w-]+)", os.environ["COMMIT_MESSAGE"]); print("main" if m is None else m.group(1))'`
-          # NOTE: might enventually change this back if we integrate changes
-          wget https://github.com/neuromatch/nmaci/archive/refs/heads/$BRANCH.tar.gz
-          tar -xzf $BRANCH.tar.gz
-          pip install --upgrade pip
-          pip install -r nmaci-$BRANCH/requirements.txt
-          mv nmaci-$BRANCH/scripts/ ci/
-          rm -r nmaci-$BRANCH
-          echo ci/ >> .gitignore
+        run: pip install git+https://github.com/neuromatch/nmaci@main
 
       - name: Install dependencies
         if: "!contains(env.COMMIT_MESSAGE, 'skip ci')"
@@ -81,15 +72,15 @@ jobs:
         id: process_notebooks
         run: |
           branch=${{ github.event.pull_request.head.ref }}
-          nbs=`python ci/select_notebooks.py ${{ steps.changed-files.outputs.all_changed_files }}`
+          nbs=$(nmaci select-notebooks ${{ steps.changed-files.outputs.all_changed_files }})
           if ${{ contains(env.COMMIT_MESSAGE, 'ci:check') }}; then
             execflag="--check-execution";
           else
             execflag="--execute";
           fi
-          python ci/process_notebooks.py $nbs $execflag
-          python ci/verify_exercises.py $nbs --c "$COMMIT_MESSAGE"
-          python ci/make_pr_comment.py $nbs --branch $branch --o comment.txt
+          nmaci process-notebooks $nbs $execflag
+          nmaci verify-exercises $nbs --c "$COMMIT_MESSAGE"
+          nmaci make-pr-comment $nbs --branch $branch --o comment.txt
 
       - name: Add PR comment
         if: "!contains(env.COMMIT_MESSAGE, 'skip ci')"
@@ -101,12 +92,12 @@ jobs:
 
       - name: Update READMEs
         if: "!contains(env.COMMIT_MESSAGE, 'skip ci')"
-        run: python ci/generate_tutorial_readmes.py
+        run: nmaci generate-readmes
 
       - name: Remove unreferenced derivatives
         if: "!contains(env.COMMIT_MESSAGE, 'skip ci') && success()"
         run: |
-          python ci/find_unreferenced_content.py > to_remove.txt
+          nmaci find-unreferenced > to_remove.txt
           if [ -s to_remove.txt ]; then git rm --pathspec-from-file=to_remove.txt; fi
 
       - name: Commit post-processed files
